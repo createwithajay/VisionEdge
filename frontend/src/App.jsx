@@ -8,11 +8,18 @@ function App() {
 
       <main>
         <section>
-          <h2>Video Stream</h2>
-          <div>
-            Video stream will appear here
-          </div>
-        </section>
+  <h2>Video Stream</h2>
+
+  <div>
+    <video
+      controls
+      width="640"
+      height="360"
+    >
+      Your browser does not support video playback.
+    </video>
+  </div>
+</section>
 
         <section>
           <h2>Telemetry</h2>
