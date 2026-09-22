@@ -1,34 +1,36 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f7fb;
+function App() {
+  return (
+    <div>
+      <header>
+        <h1>Vision Edge</h1>
+        <p>AI-Powered Vision System</p>
+      </header>
+
+      <main>
+        <section>
+  <h2>Video Stream</h2>
+
+  <div>
+    <video
+      controls
+      width="640"
+      height="360"
+    >
+      Your browser does not support video playback.
+    </video>
+  </div>
+</section>
+
+        <section>
+          <h2>Telemetry</h2>
+
+          <p>FPS: --</p>
+          <p>GPU Memory: --</p>
+          <p>Decoder Utilization: --</p>
+        </section>
+      </main>
+    </div>
+  )
 }
 
-div {
-  text-align: center;
-}
-
-h1 {
-  margin-top: 100px;
-  font-size: 48px;
-}
-
-h2 {
-  font-size: 28px;
-}
-
-p {
-  font-size: 18px;
-  color: #555;
-  max-width: 600px;
-  margin: 20px auto;
-  line-height: 1.6;
-}
-
-button {
-  padding: 12px 25px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
+export default App
