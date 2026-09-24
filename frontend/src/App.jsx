@@ -26,9 +26,20 @@ function App() {
         <section>
           <h2>Telemetry</h2>
 
-          <p>FPS: --</p>
-          <p>GPU Memory: --</p>
-          <p>Decoder Utilization: --</p>
+          <div>
+            <h3>FPS</h3>
+            <p>--</p>
+          </div>
+
+          <div>
+            <h3>GPU Memory</h3>
+            <p>--</p>
+          </div>
+
+          <div>
+            <h3>Decoder Utilization</h3>
+            <p>--</p>
+          </div>
         </section>
       </main>
     </div>
