@@ -1,4 +1,8 @@
+import { useRef } from 'react'
+
 function App() {
+  const videoRef = useRef(null)
+
   return (
     <div>
       <header>
@@ -14,6 +18,7 @@ function App() {
 
           <div>
             <video
+              ref={videoRef}
               controls
               width="640"
               height="360"
