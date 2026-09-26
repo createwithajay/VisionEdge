@@ -5,9 +5,6 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 from av import VideoFrame
 
-# --- DAY 5 UPDATE: Dummy Video Track ---
-# This class simulates the incoming AI-processed frames.
-# Later, Member 3 will inject their GPU-processed CuPy arrays here.
 class ProcessedVideoTrack(VideoStreamTrack):
     def __init__(self):
         super().__init__()
@@ -28,10 +25,29 @@ class ProcessedVideoTrack(VideoStreamTrack):
         frame.time_base = time_base
         return frame
 
-# Setup standard routing for the application
+# --- DAY 6 UPDATE: WebRTC Offer Handler ---
+async def offer(request):
+    params = await request.json()
+    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+
+    pc = RTCPeerConnection()
+    
+    # Attach our video track to the WebRTC peer connection
+    pc.addTrack(ProcessedVideoTrack())
+
+    await pc.setRemoteDescription(offer)
+    answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
+
+    return web.json_response({
+        "sdp": pc.localDescription.sdp,
+        "type": pc.localDescription.type
+    })
+
+# Setup routing for the application
 app = web.Application()
+app.router.add_post("/offer", offer)
 
 if __name__ == "__main__":
-    # Run the asynchronous server on port 8080
     print("Starting VisionEdge WebRTC server on http://0.0.0.0:8080")
     web.run_app(app, host="0.0.0.0", port=8080)
