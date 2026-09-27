@@ -25,13 +25,19 @@ class ProcessedVideoTrack(VideoStreamTrack):
         frame.time_base = time_base
         return frame
 
-# --- DAY 6 UPDATE: WebRTC Offer Handler ---
 async def offer(request):
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
     pc = RTCPeerConnection()
     
+    # --- DAY 7 UPDATE: Connection State Logging ---
+    @pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        print(f"WebRTC connection state changed to: {pc.connectionState}")
+        if pc.connectionState == "failed":
+            await pc.close()
+
     # Attach our video track to the WebRTC peer connection
     pc.addTrack(ProcessedVideoTrack())
 
