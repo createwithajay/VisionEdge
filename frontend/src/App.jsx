@@ -1,7 +1,21 @@
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 
 function App() {
   const videoRef = useRef(null)
+  const peerConnectionRef = useRef(null)
+
+  useEffect(() => {
+    const peerConnection = new RTCPeerConnection()
+
+    peerConnectionRef.current = peerConnection
+
+    console.log('WebRTC Peer Connection created')
+
+    return () => {
+      peerConnection.close()
+      console.log('WebRTC Peer Connection closed')
+    }
+  }, [])
 
   return (
     <div>
@@ -14,7 +28,7 @@ function App() {
         <section>
           <h2>Video Stream</h2>
 
-          <p>Status: Waiting for video stream...</p>
+          <p>Status: WebRTC connection ready</p>
 
           <div>
             <video
