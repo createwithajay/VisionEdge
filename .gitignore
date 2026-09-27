@@ -1,0 +1,21 @@
+# Virtual environments
+venv/
+venv_linux/
+
+# Downloaded wheels
+wheels/
+
+# Model files (large binaries — regenerate locally, don't commit)
+models/*.pt
+models/*.onnx
+
+# Compiled TensorRT engines (GPU-specific, not portable — don't commit)
+engines/*.engine
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS/editor junk
+.DS_Store
+*.swp
