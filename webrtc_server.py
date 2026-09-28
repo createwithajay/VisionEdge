@@ -1,9 +1,14 @@
 import asyncio
+import os
 import cv2
 import numpy as np
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 from av import VideoFrame
+
+# Setup directory for dynamic model uploads
+UPLOAD_DIR = "./tensorrt_models"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class ProcessedVideoTrack(VideoStreamTrack):
     def __init__(self):
@@ -31,14 +36,12 @@ async def offer(request):
 
     pc = RTCPeerConnection()
     
-    # --- DAY 7 UPDATE: Connection State Logging ---
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
         print(f"WebRTC connection state changed to: {pc.connectionState}")
         if pc.connectionState == "failed":
             await pc.close()
 
-    # Attach our video track to the WebRTC peer connection
     pc.addTrack(ProcessedVideoTrack())
 
     await pc.setRemoteDescription(offer)
@@ -50,9 +53,35 @@ async def offer(request):
         "type": pc.localDescription.type
     })
 
+# --- DAY 8 UPDATE: Dynamic Model Upload Endpoint ---
+async def upload_model(request):
+    reader = await request.multipart()
+    field = await reader.next()
+    
+    if field and field.name == 'engine_file':
+        filename = field.filename
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        
+        size = 0
+        with open(file_path, 'wb') as f:
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                size += len(chunk)
+                f.write(chunk)
+                
+        return web.json_response({
+            "status": "success", 
+            "message": f"Model {filename} uploaded and swapped successfully. Size: {size} bytes."
+        })
+
+    return web.json_response({"status": "error", "message": "Invalid file upload field"}, status=400)
+
 # Setup routing for the application
 app = web.Application()
 app.router.add_post("/offer", offer)
+app.router.add_post("/upload_model", upload_model)
 
 if __name__ == "__main__":
     print("Starting VisionEdge WebRTC server on http://0.0.0.0:8080")
