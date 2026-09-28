@@ -1,8 +1,12 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 
 function App() {
   const videoRef = useRef(null)
   const peerConnectionRef = useRef(null)
+
+  const [fps, setFps] = useState('--')
+  const [gpuMemory, setGpuMemory] = useState('--')
+  const [decoderUtilization, setDecoderUtilization] = useState('--')
 
   useEffect(() => {
     const peerConnection = new RTCPeerConnection()
@@ -47,17 +51,17 @@ function App() {
 
           <div>
             <h3>FPS</h3>
-            <p>--</p>
+            <p>{fps}</p>
           </div>
 
           <div>
             <h3>GPU Memory</h3>
-            <p>--</p>
+            <p>{gpuMemory}</p>
           </div>
 
           <div>
             <h3>Decoder Utilization</h3>
-            <p>--</p>
+            <p>{decoderUtilization}</p>
           </div>
         </section>
       </main>
