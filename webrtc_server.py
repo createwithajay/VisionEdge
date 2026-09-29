@@ -6,7 +6,6 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 from av import VideoFrame
 
-# Setup directory for dynamic model uploads
 UPLOAD_DIR = "./tensorrt_models"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -17,14 +16,10 @@ class ProcessedVideoTrack(VideoStreamTrack):
 
     async def recv(self):
         pts, time_base = await self.next_timestamp()
-        
-        # Generate a blank 1080p frame and draw a frame counter on it
         img = np.zeros((1080, 1920, 3), dtype=np.uint8)
         cv2.putText(img, f"VisionEdge Stream - Frame {self.frame_count}", (50, 100),
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
         self.frame_count += 1
-
-        # Convert the OpenCV numpy array into a WebRTC VideoFrame
         frame = VideoFrame.from_ndarray(img, format="bgr24")
         frame.pts = pts
         frame.time_base = time_base
@@ -33,9 +28,8 @@ class ProcessedVideoTrack(VideoStreamTrack):
 async def offer(request):
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
-
     pc = RTCPeerConnection()
-    
+
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
         print(f"WebRTC connection state changed to: {pc.connectionState}")
@@ -43,7 +37,6 @@ async def offer(request):
             await pc.close()
 
     pc.addTrack(ProcessedVideoTrack())
-
     await pc.setRemoteDescription(offer)
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
@@ -53,15 +46,13 @@ async def offer(request):
         "type": pc.localDescription.type
     })
 
-# --- DAY 8 UPDATE: Dynamic Model Upload Endpoint ---
 async def upload_model(request):
     reader = await request.multipart()
     field = await reader.next()
-    
+
     if field and field.name == 'engine_file':
         filename = field.filename
         file_path = os.path.join(UPLOAD_DIR, filename)
-        
         size = 0
         with open(file_path, 'wb') as f:
             while True:
@@ -70,7 +61,7 @@ async def upload_model(request):
                     break
                 size += len(chunk)
                 f.write(chunk)
-                
+
         return web.json_response({
             "status": "success", 
             "message": f"Model {filename} uploaded and swapped successfully. Size: {size} bytes."
@@ -78,11 +69,10 @@ async def upload_model(request):
 
     return web.json_response({"status": "error", "message": "Invalid file upload field"}, status=400)
 
-# Setup routing for the application
 app = web.Application()
 app.router.add_post("/offer", offer)
 app.router.add_post("/upload_model", upload_model)
 
 if __name__ == "__main__":
-    print("Starting VisionEdge WebRTC server on http://0.0.0.0:8080")
-    web.run_app(app, host="0.0.0.0", port=8080)
+    print("Starting VisionEdge WebRTC server on http://0.0.0.0:8081")
+    web.run_app(app, host="0.0.0.0", port=8081)
