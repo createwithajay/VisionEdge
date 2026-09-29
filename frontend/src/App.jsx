@@ -13,6 +13,12 @@ function App() {
 
     peerConnectionRef.current = peerConnection
 
+    peerConnection.ontrack = (event) => {
+      if (videoRef.current) {
+        videoRef.current.srcObject = event.streams[0]
+      }
+    }
+
     console.log('WebRTC Peer Connection created')
 
     return () => {
@@ -38,6 +44,8 @@ function App() {
             <video
               ref={videoRef}
               controls
+              autoPlay
+              playsInline
               width="640"
               height="360"
             >
