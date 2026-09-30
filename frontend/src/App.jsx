@@ -4,6 +4,7 @@ function App() {
   const videoRef = useRef(null)
   const peerConnectionRef = useRef(null)
 
+  const [connectionStatus, setConnectionStatus] = useState('Connecting...')
   const [fps, setFps] = useState('--')
   const [gpuMemory, setGpuMemory] = useState('--')
   const [decoderUtilization, setDecoderUtilization] = useState('--')
@@ -12,6 +13,10 @@ function App() {
     const peerConnection = new RTCPeerConnection()
 
     peerConnectionRef.current = peerConnection
+
+    peerConnection.onconnectionstatechange = () => {
+      setConnectionStatus(peerConnection.connectionState)
+    }
 
     peerConnection.ontrack = (event) => {
       if (videoRef.current) {
@@ -38,7 +43,7 @@ function App() {
         <section>
           <h2>Video Stream</h2>
 
-          <p>Status: WebRTC connection ready</p>
+          <p>Status: {connectionStatus}</p>
 
           <div>
             <video
