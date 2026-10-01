@@ -1,4 +1,20 @@
-aiortc
-aiohttp
-av
-opencv-python
+# Vision Edge — Member 3 (AI Inference & CUDA Specialist)
+# Tested baseline: Python 3.10, CUDA 12.x, NVIDIA driver >= 535
+
+# --- Core model + export ---
+ultralytics>=8.3.0          # YOLOv10 support + built-in ONNX export
+onnx>=1.16.0
+onnxsim>=0.4.36              # ONNX graph simplification (folds constants, cleans up ops)
+onnxruntime-gpu>=1.18.0      # used to sanity-check the ONNX export before TensorRT compile
+
+# --- TensorRT ---
+# tensorrt is best installed via NVIDIA's official wheel or the TensorRT container,
+# NOT always reliable through plain pip depending on your CUDA version.
+# Try pip first; if it fails, see docs/TROUBLESHOOTING.md for the Docker fallback.
+tensorrt>=10.0.0
+pycuda>=2024.1                # GPU buffer allocation used in 03_verify_engine.py
+
+# --- Utilities ---
+numpy>=1.26.0
+opencv-python-headless>=4.9.0
+tqdm>=4.66.0
