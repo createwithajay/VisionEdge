@@ -48,7 +48,6 @@ function App() {
           <div>
             <video
               ref={videoRef}
-              controls
               autoPlay
               playsInline
               width="640"
