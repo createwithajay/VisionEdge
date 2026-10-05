@@ -12,6 +12,12 @@ models/*.onnx
 # Compiled TensorRT engines (GPU-specific, not portable — don't commit)
 engines/*.engine
 
+# Benchmark/profiling outputs (regenerate locally — keep repo lean)
+results/*.json
+results/*.csv
+# Keep chart PNGs though — useful to show in the repo without rerunning
+!results/*.png
+
 # Python cache
 __pycache__/
 *.pyc
