@@ -15,7 +15,19 @@ function App() {
     peerConnectionRef.current = peerConnection
 
     peerConnection.onconnectionstatechange = () => {
-      setConnectionStatus(peerConnection.connectionState)
+      const state = peerConnection.connectionState
+
+      if (state === 'connected') {
+        setConnectionStatus('Connected')
+      } else if (state === 'connecting' || state === 'new') {
+        setConnectionStatus('Connecting...')
+      } else if (state === 'disconnected') {
+        setConnectionStatus('Disconnected')
+      } else if (state === 'failed') {
+        setConnectionStatus('Connection failed')
+      } else if (state === 'closed') {
+        setConnectionStatus('Connection closed')
+      }
     }
 
     peerConnection.ontrack = (event) => {
@@ -50,8 +62,10 @@ function App() {
               ref={videoRef}
               autoPlay
               playsInline
+              muted
               width="640"
               height="360"
+              style={{ backgroundColor: 'black' }}
             >
               Your browser does not support video playback.
             </video>
