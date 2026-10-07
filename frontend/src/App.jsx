@@ -59,13 +59,14 @@ function App() {
 
           <div>
             <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              width="640"
-              height="360"
-              style={{ backgroundColor: 'black' }}
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          width="640"
+          height="360"
+          style={{ backgroundColor: 'black' }}
+          onError={() => setConnectionStatus('Video error')}
             >
               Your browser does not support video playback.
             </video>
