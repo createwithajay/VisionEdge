@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState } from 'react'
 
 function App() {
@@ -8,6 +9,7 @@ function App() {
   const [fps, setFps] = useState('--')
   const [gpuMemory, setGpuMemory] = useState('--')
   const [decoderUtilization, setDecoderUtilization] = useState('--')
+  const [hasVideo, setHasVideo] = useState(false)
 
   useEffect(() => {
     const peerConnection = new RTCPeerConnection()
@@ -31,8 +33,9 @@ function App() {
     }
 
     peerConnection.ontrack = (event) => {
-      if (videoRef.current) {
+      if (videoRef.current && event.streams[0]) {
         videoRef.current.srcObject = event.streams[0]
+        setHasVideo(true)
       }
     }
 
@@ -43,6 +46,11 @@ function App() {
       console.log('WebRTC Peer Connection closed')
     }
   }, [])
+
+  const handleVideoError = () => {
+    setConnectionStatus('Video error')
+    setHasVideo(false)
+  }
 
   return (
     <div>
@@ -57,7 +65,14 @@ function App() {
 
           <p>Status: {connectionStatus}</p>
 
-          <div>
+          <div
+            style={{
+              position: 'relative',
+              width: '640px',
+              maxWidth: '100%',
+              backgroundColor: 'black',
+            }}
+          >
             <video
               ref={videoRef}
               autoPlay
@@ -65,12 +80,29 @@ function App() {
               muted
               width="640"
               height="360"
-              style={{ backgroundColor: 'black' }}
-              onError={() => setConnectionStatus('Video error')}
+              style={{
+                display: 'block',
+                width: '100%',
+                height: 'auto',
+                backgroundColor: 'black',
+              }}
+              onError={handleVideoError}
               onLoadStart={() => setConnectionStatus('Video loading...')}
             >
               Your browser does not support video playback.
             </video>
+
+            {!hasVideo && (
+              <p
+                style={{
+                  color: 'white',
+                  textAlign: 'center',
+                  padding: '10px',
+                }}
+              >
+                Video stream is not available yet.
+              </p>
+            )}
           </div>
         </section>
 
