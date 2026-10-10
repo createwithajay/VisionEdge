@@ -13,7 +13,6 @@ function App() {
 
   useEffect(() => {
     const peerConnection = new RTCPeerConnection()
-
     peerConnectionRef.current = peerConnection
 
     peerConnection.onconnectionstatechange = () => {
@@ -33,9 +32,17 @@ function App() {
     }
 
     peerConnection.ontrack = (event) => {
-      if (videoRef.current && event.streams[0]) {
-        videoRef.current.srcObject = event.streams[0]
+      const stream = event.streams[0]
+
+      if (videoRef.current && stream) {
+        videoRef.current.srcObject = stream
         setHasVideo(true)
+
+        stream.getVideoTracks().forEach((track) => {
+          track.onended = () => setHasVideo(false)
+          track.onmute = () => setHasVideo(false)
+          track.onunmute = () => setHasVideo(true)
+        })
       }
     }
 
@@ -62,7 +69,6 @@ function App() {
       <main>
         <section>
           <h2>Video Stream</h2>
-
           <p>Status: {connectionStatus}</p>
 
           <div
@@ -101,6 +107,18 @@ function App() {
                 }}
               >
                 Video stream is not available yet.
+              </p>
+            )}
+
+            {hasVideo && (
+              <p
+                style={{
+                  color: 'white',
+                  textAlign: 'center',
+                  padding: '10px',
+                }}
+              >
+                Video track received.
               </p>
             )}
           </div>
