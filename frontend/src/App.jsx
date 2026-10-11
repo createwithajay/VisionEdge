@@ -106,7 +106,7 @@ function App() {
                   padding: '10px',
                 }}
               >
-                Video stream is not available yet.
+               Waiting for the video stream from the backend...
               </p>
             )}
 
