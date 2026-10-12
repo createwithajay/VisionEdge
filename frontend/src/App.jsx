@@ -99,16 +99,20 @@ function App() {
             </video>
 
             {!hasVideo && (
-              <p
-                style={{
-                  color: 'white',
-                  textAlign: 'center',
-                  padding: '10px',
-                }}
-              >
-               Waiting for the video stream from the backend...
-              </p>
-            )}
+  <p
+    style={{
+      color: 'white',
+      textAlign: 'center',
+      padding: '12px',
+      margin: '0',
+      backgroundColor: '#333333',
+      borderRadius: '4px',
+      fontSize: '14px',
+    }}
+  >
+    Waiting for the video stream from the backend...
+  </p>
+)}
 
             {hasVideo && (
               <p
