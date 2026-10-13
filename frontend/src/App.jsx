@@ -69,7 +69,22 @@ function App() {
       <main>
         <section>
           <h2>Video Stream</h2>
-          <p>Status: {connectionStatus}</p>
+          
+<p
+  style={{
+    padding: '8px 12px',
+    borderRadius: '5px',
+    backgroundColor:
+      connectionStatus === 'Connected' ? '#d4edda' : '#fff3cd',
+    color:
+      connectionStatus === 'Connected' ? '#155724' : '#856404',
+    display: 'inline-block',
+    fontWeight: 'bold',
+  }}
+>
+  Status: {connectionStatus}
+</p>
+
 
           <div
             style={{
