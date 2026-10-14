@@ -113,8 +113,11 @@ function App() {
               Your browser does not support video playback.
             </video>
 
-            {!hasVideo && (
+           
+{!hasVideo && (
   <p
+    role="status"
+    aria-live="polite"
     style={{
       color: 'white',
       textAlign: 'center',
@@ -125,9 +128,16 @@ function App() {
       fontSize: '14px',
     }}
   >
-    Waiting for the video stream from the backend...
+    {connectionStatus === 'Connection failed'
+      ? 'Connection failed. Please check the backend.'
+      : connectionStatus === 'Disconnected'
+        ? 'Connection lost. Waiting to reconnect...'
+        : connectionStatus === 'Video error'
+          ? 'A video error occurred. Please try again.'
+          : 'Waiting for the video stream from the backend...'}
   </p>
 )}
+
 
             {hasVideo && (
               <p
