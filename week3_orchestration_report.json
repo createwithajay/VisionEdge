@@ -6,39 +6,39 @@
   "total_streams": 4,
   "successful_streams": 4,
   "failed_streams": 0,
-  "total_elapsed_seconds": 0.3146,
-  "aggregate_fps": 1144.39,
+  "total_elapsed_seconds": 0.27,
+  "aggregate_fps": 1333.4,
   "streams": [
     {
       "stream_id": "Stream-01",
       "status": "completed",
       "frames_processed": 90,
-      "elapsed_seconds": 0.3097,
-      "fps": 290.57,
+      "elapsed_seconds": 0.2697,
+      "fps": 333.67,
       "error": null
     },
     {
       "stream_id": "Stream-02",
       "status": "completed",
       "frames_processed": 90,
-      "elapsed_seconds": 0.2686,
-      "fps": 335.13,
+      "elapsed_seconds": 0.2554,
+      "fps": 352.33,
       "error": null
     },
     {
       "stream_id": "Stream-03",
       "status": "completed",
       "frames_processed": 90,
-      "elapsed_seconds": 0.2783,
-      "fps": 323.44,
+      "elapsed_seconds": 0.2554,
+      "fps": 352.38,
       "error": null
     },
     {
       "stream_id": "Stream-04",
       "status": "completed",
       "frames_processed": 90,
-      "elapsed_seconds": 0.2747,
-      "fps": 327.58,
+      "elapsed_seconds": 0.2621,
+      "fps": 343.37,
       "error": null
     }
   ]

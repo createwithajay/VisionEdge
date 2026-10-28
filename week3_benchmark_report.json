@@ -6,15 +6,15 @@
   "frames_per_stream": 60,
   "sequential": {
     "frames": 240,
-    "elapsed_seconds": 0.392,
-    "aggregate_fps": 612.22
+    "elapsed_seconds": 0.7337,
+    "aggregate_fps": 327.13
   },
   "concurrent": {
     "frames": 240,
-    "elapsed_seconds": 0.2015,
-    "aggregate_fps": 1190.85,
+    "elapsed_seconds": 0.1521,
+    "aggregate_fps": 1577.8,
     "all_streams_completed": true
   },
-  "speedup_ratio": 1.95,
+  "speedup_ratio": 4.82,
   "interpretation": "Concurrent execution was faster."
 }
