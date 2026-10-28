@@ -1,22 +1,32 @@
 {
-    "project": "VisionEdge",
-    "phase": "Week 2 - Mid Review Audit",
-    "role": "Member 2 - Hardware Edge Engineer",
-    "latency_metrics": {
-        "average_ms": 0.59,
-        "min_ms": 0.53,
-        "p95_ms": 0.59
-    },
-    "performance_audit": {
-        "pytorch_fps": 27.4,
-        "tensorrt_fps": 96.8,
-        "speedup_factor": "3.53x",
-        "requirement_met": true
-    },
-    "memory_profiling": {
-        "start_memory_mb": 53.95,
-        "end_memory_mb": 71.23,
-        "growth_mb": 17.28,
-        "zero_leak_verified": false
-    }
+  "project": "VisionEdge",
+  "phase": "Week 2 - CPU profiling baseline",
+  "role": "Member 1 - Orchestration Engineer",
+  "video_file": "sample_video.mp4",
+  "device": "CPU",
+  "gpu_acceleration_verified": false,
+  "workload": "Video frame conversion and lightweight NumPy preprocessing; not YOLO or neural-network inference",
+  "frames_processed": 150,
+  "cpu_workload_latency_ms": {
+    "average": 2.045,
+    "minimum": 1.397,
+    "p95": 2.682
+  },
+  "cpu_workload_fps_estimate": 488.98,
+  "memory_profiling": {
+    "measurement": "Process resident RAM, not GPU VRAM",
+    "psutil_available": true,
+    "start_ram_mb": 41.31,
+    "end_ram_mb": 49.43,
+    "ram_growth_mb": 8.12,
+    "memory_leak_verified": false
+  },
+  "pytorch_tensorRT_comparison": {
+    "status": "NOT BENCHMARKED",
+    "pytorch_fps": null,
+    "tensorrt_fps": null,
+    "speedup_factor": null,
+    "reason": "No actual model-based PyTorch and TensorRT benchmark was run by this script."
+  },
+  "target_10_streams_4k_60fps": "NOT VERIFIED"
 }
