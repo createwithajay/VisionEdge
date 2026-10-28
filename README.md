@@ -12,7 +12,7 @@
 
 # The implementation processes independent video streams concurrently, isolates individual stream failures, and records performance measurements.
 
-#
+#AA
 
 # \## Implementation
 
@@ -147,3 +147,28 @@
 #
 
 # The current implementation demonstrates concurrent stream scheduling, individual stream failure isolation, and a measurable improvement over sequential execution in the tested workload. GPU acceleration and production performance remain unverified.
+
+
+## Week 4 — Orchestration Reliability
+
+### Implemented
+- Asynchronous video-stream orchestration using asyncio.
+- Configurable concurrency limits using an asyncio semaphore.
+- Bounded retries for failed stream-processing attempts.
+- Per-stream status, elapsed time, processed frame count, FPS, error details, and attempt count.
+- Failure isolation so one stream's failure does not stop other streams.
+
+### Automated Tests
+The Week 4 test suite contains five tests covering:
+1. Concurrency limits.
+2. Invalid concurrency configuration.
+3. Failed-stream reporting.
+4. Recovery after a temporary processing failure.
+5. Enforcement of the retry limit.
+
+All five tests passed in the local test run.
+
+### Limitations
+- The current implementation is a CPU-testable baseline.
+- GPU acceleration and the target of 10 simultaneous 4K streams at 60 FPS have not been verified.
+- Production readiness requires testing with representative video streams and compatible GPU hardware.
