@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState } from 'react'
 
 function App() {
@@ -8,19 +9,40 @@ function App() {
   const [fps, setFps] = useState('--')
   const [gpuMemory, setGpuMemory] = useState('--')
   const [decoderUtilization, setDecoderUtilization] = useState('--')
+  const [hasVideo, setHasVideo] = useState(false)
 
   useEffect(() => {
     const peerConnection = new RTCPeerConnection()
-
     peerConnectionRef.current = peerConnection
 
     peerConnection.onconnectionstatechange = () => {
-      setConnectionStatus(peerConnection.connectionState)
+      const state = peerConnection.connectionState
+
+      if (state === 'connected') {
+        setConnectionStatus('Connected')
+      } else if (state === 'connecting' || state === 'new') {
+        setConnectionStatus('Connecting...')
+      } else if (state === 'disconnected') {
+        setConnectionStatus('Disconnected')
+      } else if (state === 'failed') {
+        setConnectionStatus('Connection failed')
+      } else if (state === 'closed') {
+        setConnectionStatus('Connection closed')
+      }
     }
 
     peerConnection.ontrack = (event) => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = event.streams[0]
+      const stream = event.streams[0]
+
+      if (videoRef.current && stream) {
+        videoRef.current.srcObject = stream
+        setHasVideo(true)
+
+        stream.getVideoTracks().forEach((track) => {
+          track.onended = () => setHasVideo(false)
+          track.onmute = () => setHasVideo(false)
+          track.onunmute = () => setHasVideo(true)
+        })
       }
     }
 
@@ -32,6 +54,11 @@ function App() {
     }
   }, [])
 
+  const handleVideoError = () => {
+    setConnectionStatus('Video error')
+    setHasVideo(false)
+  }
+
   return (
     <div>
       <header>
@@ -42,20 +69,87 @@ function App() {
       <main>
         <section>
           <h2>Video Stream</h2>
+          
+<p
+  style={{
+    padding: '8px 12px',
+    borderRadius: '5px',
+    backgroundColor:
+      connectionStatus === 'Connected' ? '#d4edda' : '#fff3cd',
+    color:
+      connectionStatus === 'Connected' ? '#155724' : '#856404',
+    display: 'inline-block',
+    fontWeight: 'bold',
+  }}
+>
+  Status: {connectionStatus}
+</p>
 
-          <p>Status: {connectionStatus}</p>
 
-          <div>
+          <div
+            style={{
+              position: 'relative',
+              width: '640px',
+              maxWidth: '100%',
+              backgroundColor: 'black',
+            }}
+          >
             <video
               ref={videoRef}
-              controls
               autoPlay
               playsInline
+              muted
               width="640"
               height="360"
+              style={{
+                display: 'block',
+                width: '100%',
+                height: 'auto',
+                backgroundColor: 'black',
+              }}
+              onError={handleVideoError}
+              onLoadStart={() => setConnectionStatus('Video loading...')}
             >
               Your browser does not support video playback.
             </video>
+
+           
+{!hasVideo && (
+  <p
+    role="status"
+    aria-live="polite"
+    style={{
+      color: 'white',
+      textAlign: 'center',
+      padding: '12px',
+      margin: '0',
+      backgroundColor: '#333333',
+      borderRadius: '4px',
+      fontSize: '14px',
+    }}
+  >
+    {connectionStatus === 'Connection failed'
+      ? 'Connection failed. Please check the backend.'
+      : connectionStatus === 'Disconnected'
+        ? 'Connection lost. Waiting to reconnect...'
+        : connectionStatus === 'Video error'
+          ? 'A video error occurred. Please try again.'
+          : 'Waiting for the video stream from the backend...'}
+  </p>
+)}
+
+
+            {hasVideo && (
+              <p
+                style={{
+                  color: 'white',
+                  textAlign: 'center',
+                  padding: '10px',
+                }}
+              >
+                Video track received.
+              </p>
+            )}
           </div>
         </section>
 
