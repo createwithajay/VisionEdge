@@ -1,22 +1,22 @@
+
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
 function App() {
   const videoRef = useRef(null)
-  const peerConnectionRef = useRef(null)
 
   const [connectionStatus, setConnectionStatus] = useState('Connecting...')
   const [hasVideo, setHasVideo] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [fps, setFps] = useState('--')
   const [gpuMemory, setGpuMemory] = useState('Unavailable')
-  const [decoderUtilization, setDecoderUtilization] =
-    useState('Unavailable')
+  const [decoderUtilization, setDecoderUtilization] = useState('Unavailable')
 
   useEffect(() => {
     let active = true
-    let peerConnection
-    let statsInterval
+    let pc
+    let statsTimer
+    let telemetryTimer
     let previousFrames = null
     let previousTime = null
 
@@ -25,87 +25,69 @@ function App() {
         setConnectionStatus('Connecting...')
         setErrorMessage('')
 
-        peerConnection = new RTCPeerConnection()
-        peerConnectionRef.current = peerConnection
+        pc = new RTCPeerConnection()
+        pc.addTransceiver('video', { direction: 'recvonly' })
 
-        peerConnection.onconnectionstatechange = () => {
+        pc.onconnectionstatechange = () => {
           if (!active) return
 
-          const state = peerConnection.connectionState
-
-          if (state === 'connected') {
+          if (pc.connectionState === 'connected') {
             setConnectionStatus('Connected')
-          } else if (state === 'connecting' || state === 'new') {
+          } else if (
+            pc.connectionState === 'connecting' ||
+            pc.connectionState === 'new'
+          ) {
             setConnectionStatus('Connecting...')
-          } else if (state === 'disconnected') {
+          } else if (pc.connectionState === 'disconnected') {
             setConnectionStatus('Disconnected')
-          } else if (state === 'failed') {
+          } else if (pc.connectionState === 'failed') {
             setConnectionStatus('Connection failed')
-          } else if (state === 'closed') {
+          } else if (pc.connectionState === 'closed') {
             setConnectionStatus('Connection closed')
           }
         }
 
-        peerConnection.ontrack = (event) => {
+        pc.ontrack = async (event) => {
           if (!active || !videoRef.current) return
 
-          const stream =
+          const video = videoRef.current
+          video.srcObject =
             event.streams[0] || new MediaStream([event.track])
 
-          videoRef.current.srcObject = stream
-          setHasVideo(true)
-          setConnectionStatus('Connected')
-
-          event.track.onended = () => {
-            if (active) setHasVideo(false)
+          try {
+            await video.play()
+          } catch (error) {
+            console.error('Video playback error:', error)
           }
         }
 
-        // Receive video from the Python WebRTC backend.
-        peerConnection.addTransceiver('video', {
-          direction: 'recvonly',
-        })
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
 
-        const offer = await peerConnection.createOffer()
-        await peerConnection.setLocalDescription(offer)
-
-        // Wait for ICE gathering to finish before sending the offer.
-        if (peerConnection.iceGatheringState !== 'complete') {
+        if (pc.iceGatheringState !== 'complete') {
           await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
-              peerConnection.removeEventListener(
-                'icegatheringstatechange',
-                checkState,
-              )
+              pc.removeEventListener('icegatheringstatechange', checkState)
               reject(new Error('ICE gathering timed out'))
             }, 10000)
 
             function checkState() {
-              if (peerConnection.iceGatheringState === 'complete') {
+              if (pc.iceGatheringState === 'complete') {
                 clearTimeout(timeout)
-                peerConnection.removeEventListener(
-                  'icegatheringstatechange',
-                  checkState,
-                )
+                pc.removeEventListener('icegatheringstatechange', checkState)
                 resolve()
               }
             }
 
-            peerConnection.addEventListener(
-              'icegatheringstatechange',
-              checkState,
-            )
-
+            pc.addEventListener('icegatheringstatechange', checkState)
             checkState()
           })
         }
 
         const response = await fetch('/offer', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(peerConnection.localDescription),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pc.localDescription),
         })
 
         if (!response.ok) {
@@ -113,28 +95,23 @@ function App() {
         }
 
         const answer = await response.json()
-        await peerConnection.setRemoteDescription(answer)
 
-        // Read video statistics from the browser once per second.
-        statsInterval = setInterval(async () => {
-          if (
-            !active ||
-            !peerConnection ||
-            peerConnection.connectionState === 'closed'
-          ) {
-            return
-          }
+        if (!answer.sdp || !answer.type) {
+          throw new Error(answer.error || 'Invalid WebRTC answer')
+        }
+
+        await pc.setRemoteDescription(answer)
+
+        statsTimer = setInterval(async () => {
+          if (!active || !pc || pc.connectionState === 'closed') return
 
           try {
-            const stats = await peerConnection.getStats()
+            const stats = await pc.getStats()
 
             stats.forEach((report) => {
               if (
                 report.type !== 'inbound-rtp' ||
-                !(
-                  report.kind === 'video' ||
-                  report.mediaType === 'video'
-                )
+                !(report.kind === 'video' || report.mediaType === 'video')
               ) {
                 return
               }
@@ -143,16 +120,10 @@ function App() {
 
               if (typeof report.framesPerSecond === 'number') {
                 setFps(report.framesPerSecond.toFixed(1))
-              } else if (
-                typeof report.framesReceived === 'number'
-              ) {
-                if (
-                  previousFrames !== null &&
-                  previousTime !== null
-                ) {
+              } else if (typeof report.framesReceived === 'number') {
+                if (previousFrames !== null && previousTime !== null) {
                   const elapsed = (now - previousTime) / 1000
-                  const received =
-                    report.framesReceived - previousFrames
+                  const received = report.framesReceived - previousFrames
 
                   if (elapsed > 0 && received >= 0) {
                     setFps((received / elapsed).toFixed(1))
@@ -164,7 +135,7 @@ function App() {
               }
             })
           } catch (error) {
-            console.error('Could not read video statistics:', error)
+            console.error('Video statistics error:', error)
           }
         }, 1000)
       } catch (error) {
@@ -172,32 +143,80 @@ function App() {
 
         if (active) {
           setConnectionStatus('Connection failed')
-          setHasVideo(false)
-          setErrorMessage(
-            `${error.message}. Check that the Python backend is running on port 8081.`,
-          )
+          setErrorMessage(error.message)
         }
       }
     }
 
+    async function fetchTelemetry() {
+      try {
+        const response = await fetch('/telemetry')
+
+        if (!response.ok) {
+          throw new Error(`Telemetry returned HTTP ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        if (!active) return
+
+        if (
+          typeof data.gpu_memory_percent === 'number' &&
+          typeof data.gpu_memory_used_mb === 'number' &&
+          typeof data.gpu_memory_total_mb === 'number'
+        ) {
+          setGpuMemory(
+            `${data.gpu_memory_percent}% (${data.gpu_memory_used_mb} / ${data.gpu_memory_total_mb} MB)`
+          )
+        } else {
+          setGpuMemory('Unavailable')
+        }
+
+        setDecoderUtilization(
+          typeof data.decoder_utilization === 'number'
+            ? `${data.decoder_utilization}%`
+            : 'Unavailable'
+        )
+      } catch (error) {
+        if (active) setGpuMemory('Unavailable')
+        console.error('Telemetry fetch error:', error)
+      }
+    }
+
+    function updateVideoStatus() {
+      if (!active || !videoRef.current) return
+
+      const video = videoRef.current
+
+      if (video.videoWidth > 0 && video.videoHeight > 0 && !video.paused) {
+        setHasVideo(true)
+        setConnectionStatus('Connected')
+        setErrorMessage('')
+      } else {
+        setHasVideo(false)
+      }
+    }
+
     connectToBackend()
+    fetchTelemetry()
+    telemetryTimer = setInterval(fetchTelemetry, 2000)
+
+    const video = videoRef.current
+    video?.addEventListener('playing', updateVideoStatus)
+    video?.addEventListener('pause', updateVideoStatus)
+    video?.addEventListener('error', updateVideoStatus)
 
     return () => {
       active = false
+      clearInterval(statsTimer)
+      clearInterval(telemetryTimer)
 
-      if (statsInterval) {
-        clearInterval(statsInterval)
-      }
+      video?.removeEventListener('playing', updateVideoStatus)
+      video?.removeEventListener('pause', updateVideoStatus)
+      video?.removeEventListener('error', updateVideoStatus)
 
-      if (peerConnection) {
-        peerConnection.close()
-      }
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = null
-      }
-
-      peerConnectionRef.current = null
+      if (pc) pc.close()
+      if (video) video.srcObject = null
     }
   }, [])
 
@@ -211,10 +230,8 @@ function App() {
       <main>
         <section>
           <h2>Video Stream</h2>
-
           <p>
-            Status:{' '}
-            <strong>{connectionStatus}</strong>
+            Status: <strong>{hasVideo ? 'Video playing' : connectionStatus}</strong>
           </p>
 
           <div
@@ -240,12 +257,8 @@ function App() {
             />
 
             {!hasVideo && (
-              <p
-                role="status"
-                style={{ color: 'white', padding: '12px' }}
-              >
-                {errorMessage ||
-                  'Waiting for video from the Python backend...'}
+              <p role="status" style={{ color: 'white', padding: '12px' }}>
+                {errorMessage || 'Waiting for video frames...'}
               </p>
             )}
           </div>
@@ -265,21 +278,15 @@ function App() {
             <article className="telemetry-card">
               <h3>GPU Memory</h3>
               <p>{gpuMemory}</p>
-              <small>Requires backend GPU metrics</small>
+              <small>Live data from the backend</small>
             </article>
 
             <article className="telemetry-card">
               <h3>Decoder Utilization</h3>
               <p>{decoderUtilization}</p>
-              <small>Requires backend decoder metrics</small>
+              <small>Unavailable if the driver does not report it</small>
             </article>
           </div>
-
-          <p>
-            FPS is measured using browser WebRTC statistics when
-            available. GPU memory and decoder utilization will
-            appear when the backend provides those values.
-          </p>
         </section>
       </main>
     </div>
