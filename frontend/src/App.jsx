@@ -1,66 +1,227 @@
 
-import { useRef, useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import './App.css'
 
 function App() {
   const videoRef = useRef(null)
-  const peerConnectionRef = useRef(null)
 
   const [connectionStatus, setConnectionStatus] = useState('Connecting...')
-  const [fps, setFps] = useState('--')
-  const [gpuMemory, setGpuMemory] = useState('--')
-  const [decoderUtilization, setDecoderUtilization] = useState('--')
   const [hasVideo, setHasVideo] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [fps, setFps] = useState('--')
+  const [gpuMemory, setGpuMemory] = useState('Unavailable')
+  const [decoderUtilization, setDecoderUtilization] = useState('Unavailable')
 
   useEffect(() => {
-    const peerConnection = new RTCPeerConnection()
-    peerConnectionRef.current = peerConnection
+    let active = true
+    let pc
+    let statsTimer
+    let telemetryTimer
+    let previousFrames = null
+    let previousTime = null
 
-    peerConnection.onconnectionstatechange = () => {
-      const state = peerConnection.connectionState
-
-      if (state === 'connected') {
-        setConnectionStatus('Connected')
-      } else if (state === 'connecting' || state === 'new') {
+    async function connectToBackend() {
+      try {
         setConnectionStatus('Connecting...')
-      } else if (state === 'disconnected') {
-        setConnectionStatus('Disconnected')
-      } else if (state === 'failed') {
-        setConnectionStatus('Connection failed')
-      } else if (state === 'closed') {
-        setConnectionStatus('Connection closed')
-      }
-    }
+        setErrorMessage('')
 
-    peerConnection.ontrack = (event) => {
-      const stream = event.streams[0]
+        pc = new RTCPeerConnection()
+        pc.addTransceiver('video', { direction: 'recvonly' })
 
-      if (videoRef.current && stream) {
-        videoRef.current.srcObject = stream
-        setHasVideo(true)
+        pc.onconnectionstatechange = () => {
+          if (!active) return
 
-        stream.getVideoTracks().forEach((track) => {
-          track.onended = () => setHasVideo(false)
-          track.onmute = () => setHasVideo(false)
-          track.onunmute = () => setHasVideo(true)
+          if (pc.connectionState === 'connected') {
+            setConnectionStatus('Connected')
+          } else if (
+            pc.connectionState === 'connecting' ||
+            pc.connectionState === 'new'
+          ) {
+            setConnectionStatus('Connecting...')
+          } else if (pc.connectionState === 'disconnected') {
+            setConnectionStatus('Disconnected')
+          } else if (pc.connectionState === 'failed') {
+            setConnectionStatus('Connection failed')
+          } else if (pc.connectionState === 'closed') {
+            setConnectionStatus('Connection closed')
+          }
+        }
+
+        pc.ontrack = async (event) => {
+          if (!active || !videoRef.current) return
+
+          const video = videoRef.current
+          video.srcObject =
+            event.streams[0] || new MediaStream([event.track])
+
+          try {
+            await video.play()
+          } catch (error) {
+            console.error('Video playback error:', error)
+          }
+        }
+
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+
+        if (pc.iceGatheringState !== 'complete') {
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              pc.removeEventListener('icegatheringstatechange', checkState)
+              reject(new Error('ICE gathering timed out'))
+            }, 10000)
+
+            function checkState() {
+              if (pc.iceGatheringState === 'complete') {
+                clearTimeout(timeout)
+                pc.removeEventListener('icegatheringstatechange', checkState)
+                resolve()
+              }
+            }
+
+            pc.addEventListener('icegatheringstatechange', checkState)
+            checkState()
+          })
+        }
+
+        const response = await fetch('/offer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pc.localDescription),
         })
+
+        if (!response.ok) {
+          throw new Error(`Backend returned HTTP ${response.status}`)
+        }
+
+        const answer = await response.json()
+
+        if (!answer.sdp || !answer.type) {
+          throw new Error(answer.error || 'Invalid WebRTC answer')
+        }
+
+        await pc.setRemoteDescription(answer)
+
+        statsTimer = setInterval(async () => {
+          if (!active || !pc || pc.connectionState === 'closed') return
+
+          try {
+            const stats = await pc.getStats()
+
+            stats.forEach((report) => {
+              if (
+                report.type !== 'inbound-rtp' ||
+                !(report.kind === 'video' || report.mediaType === 'video')
+              ) {
+                return
+              }
+
+              const now = performance.now()
+
+              if (typeof report.framesPerSecond === 'number') {
+                setFps(report.framesPerSecond.toFixed(1))
+              } else if (typeof report.framesReceived === 'number') {
+                if (previousFrames !== null && previousTime !== null) {
+                  const elapsed = (now - previousTime) / 1000
+                  const received = report.framesReceived - previousFrames
+
+                  if (elapsed > 0 && received >= 0) {
+                    setFps((received / elapsed).toFixed(1))
+                  }
+                }
+
+                previousFrames = report.framesReceived
+                previousTime = now
+              }
+            })
+          } catch (error) {
+            console.error('Video statistics error:', error)
+          }
+        }, 1000)
+      } catch (error) {
+        console.error('WebRTC connection error:', error)
+
+        if (active) {
+          setConnectionStatus('Connection failed')
+          setErrorMessage(error.message)
+        }
       }
     }
 
-    console.log('WebRTC Peer Connection created')
+    async function fetchTelemetry() {
+      try {
+        const response = await fetch('/telemetry')
+
+        if (!response.ok) {
+          throw new Error(`Telemetry returned HTTP ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        if (!active) return
+
+        if (
+          typeof data.gpu_memory_percent === 'number' &&
+          typeof data.gpu_memory_used_mb === 'number' &&
+          typeof data.gpu_memory_total_mb === 'number'
+        ) {
+          setGpuMemory(
+            `${data.gpu_memory_percent}% (${data.gpu_memory_used_mb} / ${data.gpu_memory_total_mb} MB)`
+          )
+        } else {
+          setGpuMemory('Unavailable')
+        }
+
+        setDecoderUtilization(
+          typeof data.decoder_utilization === 'number'
+            ? `${data.decoder_utilization}%`
+            : 'Unavailable'
+        )
+      } catch (error) {
+        if (active) setGpuMemory('Unavailable')
+        console.error('Telemetry fetch error:', error)
+      }
+    }
+
+    function updateVideoStatus() {
+      if (!active || !videoRef.current) return
+
+      const video = videoRef.current
+
+      if (video.videoWidth > 0 && video.videoHeight > 0 && !video.paused) {
+        setHasVideo(true)
+        setConnectionStatus('Connected')
+        setErrorMessage('')
+      } else {
+        setHasVideo(false)
+      }
+    }
+
+    connectToBackend()
+    fetchTelemetry()
+    telemetryTimer = setInterval(fetchTelemetry, 2000)
+
+    const video = videoRef.current
+    video?.addEventListener('playing', updateVideoStatus)
+    video?.addEventListener('pause', updateVideoStatus)
+    video?.addEventListener('error', updateVideoStatus)
 
     return () => {
-      peerConnection.close()
-      console.log('WebRTC Peer Connection closed')
+      active = false
+      clearInterval(statsTimer)
+      clearInterval(telemetryTimer)
+
+      video?.removeEventListener('playing', updateVideoStatus)
+      video?.removeEventListener('pause', updateVideoStatus)
+      video?.removeEventListener('error', updateVideoStatus)
+
+      if (pc) pc.close()
+      if (video) video.srcObject = null
     }
   }, [])
 
-  const handleVideoError = () => {
-    setConnectionStatus('Video error')
-    setHasVideo(false)
-  }
-
   return (
-    <div>
+    <div className="app">
       <header>
         <h1>Vision Edge</h1>
         <p>AI-Powered Vision System</p>
@@ -69,29 +230,15 @@ function App() {
       <main>
         <section>
           <h2>Video Stream</h2>
-          
-<p
-  style={{
-    padding: '8px 12px',
-    borderRadius: '5px',
-    backgroundColor:
-      connectionStatus === 'Connected' ? '#d4edda' : '#fff3cd',
-    color:
-      connectionStatus === 'Connected' ? '#155724' : '#856404',
-    display: 'inline-block',
-    fontWeight: 'bold',
-  }}
->
-  Status: {connectionStatus}
-</p>
-
+          <p>
+            Status: <strong>{hasVideo ? 'Video playing' : connectionStatus}</strong>
+          </p>
 
           <div
             style={{
-              position: 'relative',
               width: '640px',
               maxWidth: '100%',
-              backgroundColor: 'black',
+              backgroundColor: '#000',
             }}
           >
             <video
@@ -105,70 +252,40 @@ function App() {
                 display: 'block',
                 width: '100%',
                 height: 'auto',
-                backgroundColor: 'black',
+                backgroundColor: '#000',
               }}
-              onError={handleVideoError}
-              onLoadStart={() => setConnectionStatus('Video loading...')}
-            >
-              Your browser does not support video playback.
-            </video>
+            />
 
-           
-{!hasVideo && (
-  <p
-    role="status"
-    aria-live="polite"
-    style={{
-      color: 'white',
-      textAlign: 'center',
-      padding: '12px',
-      margin: '0',
-      backgroundColor: '#333333',
-      borderRadius: '4px',
-      fontSize: '14px',
-    }}
-  >
-    {connectionStatus === 'Connection failed'
-      ? 'Connection failed. Please check the backend.'
-      : connectionStatus === 'Disconnected'
-        ? 'Connection lost. Waiting to reconnect...'
-        : connectionStatus === 'Video error'
-          ? 'A video error occurred. Please try again.'
-          : 'Waiting for the video stream from the backend...'}
-  </p>
-)}
-
-
-            {hasVideo && (
-              <p
-                style={{
-                  color: 'white',
-                  textAlign: 'center',
-                  padding: '10px',
-                }}
-              >
-                Video track received.
+            {!hasVideo && (
+              <p role="status" style={{ color: 'white', padding: '12px' }}>
+                {errorMessage || 'Waiting for video frames...'}
               </p>
             )}
           </div>
         </section>
 
         <section>
-          <h2>Telemetry</h2>
+          <h2>Telemetry Dashboard</h2>
+          <p>Live video performance statistics</p>
 
-          <div>
-            <h3>FPS</h3>
-            <p>{fps}</p>
-          </div>
+          <div className="telemetry-grid">
+            <article className="telemetry-card">
+              <h3>FPS</h3>
+              <p>{fps}</p>
+              <small>Received video frames per second</small>
+            </article>
 
-          <div>
-            <h3>GPU Memory</h3>
-            <p>{gpuMemory}</p>
-          </div>
+            <article className="telemetry-card">
+              <h3>GPU Memory</h3>
+              <p>{gpuMemory}</p>
+              <small>Live data from the backend</small>
+            </article>
 
-          <div>
-            <h3>Decoder Utilization</h3>
-            <p>{decoderUtilization}</p>
+            <article className="telemetry-card">
+              <h3>Decoder Utilization</h3>
+              <p>{decoderUtilization}</p>
+              <small>Unavailable if the driver does not report it</small>
+            </article>
           </div>
         </section>
       </main>
