@@ -1,63 +1,129 @@
 
-import { useRef, useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import './App.css'
 
 function App() {
   const videoRef = useRef(null)
-  const peerConnectionRef = useRef(null)
-
   const [connectionStatus, setConnectionStatus] = useState('Connecting...')
-  const [fps, setFps] = useState('--')
-  const [gpuMemory, setGpuMemory] = useState('--')
-  const [decoderUtilization, setDecoderUtilization] = useState('--')
   const [hasVideo, setHasVideo] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [fps] = useState('--')
+  const [gpuMemory] = useState('--')
+  const [decoderUtilization] = useState('--')
 
   useEffect(() => {
-    const peerConnection = new RTCPeerConnection()
-    peerConnectionRef.current = peerConnection
+    let active = true
+    let peerConnection
 
-    peerConnection.onconnectionstatechange = () => {
-      const state = peerConnection.connectionState
-
-      if (state === 'connected') {
-        setConnectionStatus('Connected')
-      } else if (state === 'connecting' || state === 'new') {
+    async function connectToBackend() {
+      try {
         setConnectionStatus('Connecting...')
-      } else if (state === 'disconnected') {
-        setConnectionStatus('Disconnected')
-      } else if (state === 'failed') {
-        setConnectionStatus('Connection failed')
-      } else if (state === 'closed') {
-        setConnectionStatus('Connection closed')
-      }
-    }
+        setErrorMessage('')
 
-    peerConnection.ontrack = (event) => {
-      const stream = event.streams[0]
+        peerConnection = new RTCPeerConnection()
 
-      if (videoRef.current && stream) {
-        videoRef.current.srcObject = stream
-        setHasVideo(true)
+        peerConnection.onconnectionstatechange = () => {
+          if (!active) return
 
-        stream.getVideoTracks().forEach((track) => {
-          track.onended = () => setHasVideo(false)
-          track.onmute = () => setHasVideo(false)
-          track.onunmute = () => setHasVideo(true)
+          const state = peerConnection.connectionState
+
+          if (state === 'connected') {
+            setConnectionStatus('Connected')
+          } else if (state === 'failed') {
+            setConnectionStatus('Connection failed')
+          } else if (state === 'disconnected') {
+            setConnectionStatus('Disconnected')
+          } else if (state === 'closed') {
+            setConnectionStatus('Connection closed')
+          }
+        }
+
+        peerConnection.ontrack = (event) => {
+          if (!active || !videoRef.current) return
+
+          const stream =
+            event.streams[0] || new MediaStream([event.track])
+
+          videoRef.current.srcObject = stream
+          setHasVideo(true)
+          setConnectionStatus('Connected')
+        }
+
+        peerConnection.addTransceiver('video', {
+          direction: 'recvonly',
         })
+
+        const offer = await peerConnection.createOffer()
+        await peerConnection.setLocalDescription(offer)
+
+        // Wait until the browser has gathered its ICE candidates.
+        if (peerConnection.iceGatheringState !== 'complete') {
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(
+              () => reject(new Error('ICE gathering timed out')),
+              10000,
+            )
+
+            const checkState = () => {
+              if (peerConnection.iceGatheringState === 'complete') {
+                clearTimeout(timeout)
+                peerConnection.removeEventListener(
+                  'icegatheringstatechange',
+                  checkState,
+                )
+                resolve()
+              }
+            }
+
+            peerConnection.addEventListener(
+              'icegatheringstatechange',
+              checkState,
+            )
+            checkState()
+          })
+        }
+
+        const response = await fetch('/offer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(peerConnection.localDescription),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Backend returned HTTP ${response.status}`)
+        }
+
+        const answer = await response.json()
+        await peerConnection.setRemoteDescription(answer)
+      } catch (error) {
+        console.error('WebRTC connection error:', error)
+
+        if (active) {
+          setConnectionStatus('Connection failed')
+          setHasVideo(false)
+          setErrorMessage(
+            `${error.message}. Check that the Python backend is running on port 8081.`,
+          )
+        }
       }
     }
 
-    console.log('WebRTC Peer Connection created')
+    connectToBackend()
 
     return () => {
-      peerConnection.close()
-      console.log('WebRTC Peer Connection closed')
+      active = false
+
+      if (peerConnection) {
+        peerConnection.close()
+      }
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = null
+      }
     }
   }, [])
-
-  const handleVideoError = () => {
-    setConnectionStatus('Video error')
-    setHasVideo(false)
-  }
 
   return (
     <div>
@@ -69,29 +135,16 @@ function App() {
       <main>
         <section>
           <h2>Video Stream</h2>
-          
-<p
-  style={{
-    padding: '8px 12px',
-    borderRadius: '5px',
-    backgroundColor:
-      connectionStatus === 'Connected' ? '#d4edda' : '#fff3cd',
-    color:
-      connectionStatus === 'Connected' ? '#155724' : '#856404',
-    display: 'inline-block',
-    fontWeight: 'bold',
-  }}
->
-  Status: {connectionStatus}
-</p>
 
+          <p>
+            <strong>Status: {connectionStatus}</strong>
+          </p>
 
           <div
             style={{
-              position: 'relative',
               width: '640px',
               maxWidth: '100%',
-              backgroundColor: 'black',
+              backgroundColor: '#000',
             }}
           >
             <video
@@ -105,49 +158,17 @@ function App() {
                 display: 'block',
                 width: '100%',
                 height: 'auto',
-                backgroundColor: 'black',
+                backgroundColor: '#000',
               }}
-              onError={handleVideoError}
-              onLoadStart={() => setConnectionStatus('Video loading...')}
-            >
-              Your browser does not support video playback.
-            </video>
+            />
 
-           
-{!hasVideo && (
-  <p
-    role="status"
-    aria-live="polite"
-    style={{
-      color: 'white',
-      textAlign: 'center',
-      padding: '12px',
-      margin: '0',
-      backgroundColor: '#333333',
-      borderRadius: '4px',
-      fontSize: '14px',
-    }}
-  >
-    {connectionStatus === 'Connection failed'
-      ? 'Connection failed. Please check the backend.'
-      : connectionStatus === 'Disconnected'
-        ? 'Connection lost. Waiting to reconnect...'
-        : connectionStatus === 'Video error'
-          ? 'A video error occurred. Please try again.'
-          : 'Waiting for the video stream from the backend...'}
-  </p>
-)}
-
-
-            {hasVideo && (
+            {!hasVideo && (
               <p
-                style={{
-                  color: 'white',
-                  textAlign: 'center',
-                  padding: '10px',
-                }}
+                role="status"
+                style={{ color: 'white', padding: '12px' }}
               >
-                Video track received.
+                {errorMessage ||
+                  'Waiting for video from the Python backend...'}
               </p>
             )}
           </div>
@@ -170,6 +191,8 @@ function App() {
             <h3>Decoder Utilization</h3>
             <p>{decoderUtilization}</p>
           </div>
+
+          <p>Telemetry will be available when the backend provides it.</p>
         </section>
       </main>
     </div>
