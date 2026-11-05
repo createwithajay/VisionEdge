@@ -11,6 +11,7 @@ function App() {
   const [fps, setFps] = useState('--')
   const [gpuMemory, setGpuMemory] = useState('Unavailable')
   const [decoderUtilization, setDecoderUtilization] = useState('Unavailable')
+  const [telemetryStatus, setTelemetryStatus] = useState('Waiting for backend...')
 
   useEffect(() => {
     let active = true
@@ -42,8 +43,10 @@ function App() {
             setConnectionStatus('Disconnected')
           } else if (pc.connectionState === 'failed') {
             setConnectionStatus('Connection failed')
+            setHasVideo(false)
           } else if (pc.connectionState === 'closed') {
             setConnectionStatus('Connection closed')
+            setHasVideo(false)
           }
         }
 
@@ -118,7 +121,10 @@ function App() {
 
               const now = performance.now()
 
-              if (typeof report.framesPerSecond === 'number') {
+              if (
+                typeof report.framesPerSecond === 'number' &&
+                Number.isFinite(report.framesPerSecond)
+              ) {
                 setFps(report.framesPerSecond.toFixed(1))
               } else if (typeof report.framesReceived === 'number') {
                 if (previousFrames !== null && previousTime !== null) {
@@ -144,6 +150,7 @@ function App() {
         if (active) {
           setConnectionStatus('Connection failed')
           setErrorMessage(error.message)
+          setHasVideo(false)
         }
       }
     }
@@ -172,13 +179,23 @@ function App() {
           setGpuMemory('Unavailable')
         }
 
-        setDecoderUtilization(
-          typeof data.decoder_utilization === 'number'
-            ? `${data.decoder_utilization}%`
-            : 'Unavailable'
-        )
+        if (
+          typeof data.decoder_utilization === 'number' &&
+          Number.isFinite(data.decoder_utilization)
+        ) {
+          setDecoderUtilization(`${data.decoder_utilization}%`)
+        } else {
+          setDecoderUtilization('Unavailable')
+        }
+
+        setTelemetryStatus('Connected')
       } catch (error) {
-        if (active) setGpuMemory('Unavailable')
+        if (active) {
+          setGpuMemory('Unavailable')
+          setDecoderUtilization('Unavailable')
+          setTelemetryStatus('Backend telemetry unavailable')
+        }
+
         console.error('Telemetry fetch error:', error)
       }
     }
@@ -199,15 +216,18 @@ function App() {
 
     connectToBackend()
     fetchTelemetry()
+
     telemetryTimer = setInterval(fetchTelemetry, 2000)
 
     const video = videoRef.current
+
     video?.addEventListener('playing', updateVideoStatus)
     video?.addEventListener('pause', updateVideoStatus)
     video?.addEventListener('error', updateVideoStatus)
 
     return () => {
       active = false
+
       clearInterval(statsTimer)
       clearInterval(telemetryTimer)
 
@@ -230,8 +250,12 @@ function App() {
       <main>
         <section>
           <h2>Video Stream</h2>
+
           <p>
-            Status: <strong>{hasVideo ? 'Video playing' : connectionStatus}</strong>
+            Status:{' '}
+            <strong>
+              {hasVideo ? 'Video playing' : connectionStatus}
+            </strong>
           </p>
 
           <div
@@ -267,6 +291,9 @@ function App() {
         <section>
           <h2>Telemetry Dashboard</h2>
           <p>Live video performance statistics</p>
+          <p>
+            Backend telemetry status: <strong>{telemetryStatus}</strong>
+          </p>
 
           <div className="telemetry-grid">
             <article className="telemetry-card">
@@ -284,7 +311,7 @@ function App() {
             <article className="telemetry-card">
               <h3>Decoder Utilization</h3>
               <p>{decoderUtilization}</p>
-              <small>Unavailable if the driver does not report it</small>
+              <small>Live data from the backend</small>
             </article>
           </div>
         </section>
