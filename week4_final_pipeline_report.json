@@ -3,27 +3,27 @@
     "phase": "Week 4 - Final Implementation & Polish",
     "role": "Member 2 - Hardware Edge Engineer (Decoding & Profiling)",
     "concurrent_streams": 4,
-    "aggregate_fps": 1260.58,
+    "aggregate_fps": 1391.44,
     "stream_breakdown": {
         "Camera_Intersection_1": {
             "frames_processed": 60,
-            "elapsed_sec": 0.18,
-            "fps": 342.5
+            "elapsed_sec": 0.17,
+            "fps": 360.4
         },
         "Camera_Intersection_2": {
             "frames_processed": 60,
-            "elapsed_sec": 0.17,
-            "fps": 354.2
+            "elapsed_sec": 0.16,
+            "fps": 368.9
         },
         "Camera_Intersection_3": {
             "frames_processed": 60,
-            "elapsed_sec": 0.17,
-            "fps": 363.6
+            "elapsed_sec": 0.16,
+            "fps": 376.4
         },
         "Camera_Intersection_4": {
             "frames_processed": 60,
             "elapsed_sec": 0.16,
-            "fps": 373.1
+            "fps": 383.8
         }
     },
     "hot_swap_audit": {
@@ -33,9 +33,9 @@
         "uninterrupted_transition": true
     },
     "system_health": {
-        "start_memory_mb": 51.45,
-        "end_memory_mb": 76.95,
-        "memory_delta_mb": 25.5,
+        "start_memory_mb": 50.91,
+        "end_memory_mb": 76.77,
+        "memory_delta_mb": 25.86,
         "vram_leak_detected": false
     }
 }
