@@ -10,31 +10,26 @@ def run_phase(phase_name, script_file):
     result = subprocess.run([sys.executable, script_file], capture_output=False)
     elapsed = time.perf_counter() - t0
     if result.returncode != 0:
-        print(f"❌ Error during {phase_name}. Exit code: {result.returncode}")
+        print(f"Error during {phase_name}. Exit code: {result.returncode}")
         sys.exit(result.returncode)
-    print(f" Completed {phase_name} in {elapsed:.2f}s")
+    print(f"Completed {phase_name} in {elapsed:.2f}s")
 
 def main():
     print("=" * 70)
-    print("AXLERO SOLUTIONS - VISIONEDGE END-TO-END PIPELINE DEMONSTRATION")
-    print("Hardware-Accelerated Computer Vision & Edge Profiling System")
+    print("AXLERO SOLUTIONS - VISIONEDGE COMPLETE END-TO-END PIPELINE")
+    print("Hardware Edge Engineering & Accelerated AI Inference")
     print("=" * 70)
 
-    # Week 1: Hardware-Accelerated Video Decoding (PyAV / NVDEC)
     run_phase("Phase 1: PyAV Stream Extraction", "week1_decoder.py")
-
-    # Week 2: Inference Loop Latency & 3x Speedup Performance Audit
     run_phase("Phase 2: Inference Latency & Leak Profiling", "week2_inference_profiling.py")
-
-    # Week 3: CuPy Zero-Copy Bridge & GPU In-Place Rendering
-    run_phase("Phase 3: Zero-Copy Bridge & CUDA Kernels", "week3_zero_copy_bridge.py")
-
-    # Week 4: Asyncio MultiStream Orchestration & Dynamic Model Swapping
+    run_phase("Phase 3: Zero-Copy Bridge Baseline", "week3_zero_copy_bridge.py")
     run_phase("Phase 4: MultiStream Orchestration (asyncio)", "week4_multistream_pipeline.py")
+    run_phase("Phase 5: Member 3 CuPy Zero-Copy CUDA Kernels", "member3_zero_copy_cuda.py")
+    run_phase("Phase 6: Member 3 TensorRT Dynamic Engine Hot-Swap", "member3_tensorrt_dynamic_engine.py")
 
     print("\n" + "=" * 70)
-    print("ALL VISIONEDGE PIPELINE PHASES EXECUTED SUCCESSFULLY")
-    print("Audit Artifacts Ready: week2_audit_report.json, week3_zero_copy_report.json, week4_final_pipeline_report.json")
+    print("ALL VISIONEDGE MODULES (MEMBER 2 + REALLOCATED MEMBER 3) EXECUTED SUCCESSFULLY")
+    print("All JSON Audit Reports Ready for Evaluation.")
     print("=" * 70)
 
 if __name__ == "__main__":

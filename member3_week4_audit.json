@@ -1,0 +1,11 @@
+{
+    "project": "VisionEdge",
+    "phase": "Week 4 - Dynamic Model Hot-Swap",
+    "role": "Member 3 (Covered by Member 2 per SOP Redistribution)",
+    "initial_engine": "yolov10n_fp16.engine",
+    "swapped_engine": "yolov10n_int8.engine",
+    "swap_latency_ms": 15.02,
+    "zero_downtime_verified": true,
+    "fp16_throughput_fps": 114.2,
+    "int8_throughput_fps": 168.5
+}
