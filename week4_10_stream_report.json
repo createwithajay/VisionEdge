@@ -1,0 +1,108 @@
+{
+  "project": "VisionEdge",
+  "role": "Member 1 - Orchestration Engineer",
+  "test": "10-stream concurrent orchestration",
+  "execution_device": "CPU baseline; NVIDIA GPU not verified",
+  "concurrency_limit": 10,
+  "requested_frames_per_stream": 60,
+  "total_streams": 10,
+  "successful_streams": 10,
+  "failed_streams": 0,
+  "total_frames_processed": 600,
+  "total_elapsed_seconds": 0.3506,
+  "aggregate_fps": 1711.44,
+  "stream_results": [
+    {
+      "stream_id": "Camera-01",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.3272,
+      "fps": 183.37,
+      "error": null,
+      "attempts": 1
+    },
+    {
+      "stream_id": "Camera-02",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.3132,
+      "fps": 191.59,
+      "error": null,
+      "attempts": 1
+    },
+    {
+      "stream_id": "Camera-03",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.3254,
+      "fps": 184.41,
+      "error": null,
+      "attempts": 1
+    },
+    {
+      "stream_id": "Camera-04",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.3185,
+      "fps": 188.39,
+      "error": null,
+      "attempts": 1
+    },
+    {
+      "stream_id": "Camera-05",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.3075,
+      "fps": 195.12,
+      "error": null,
+      "attempts": 1
+    },
+    {
+      "stream_id": "Camera-06",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.3029,
+      "fps": 198.09,
+      "error": null,
+      "attempts": 1
+    },
+    {
+      "stream_id": "Camera-07",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.3193,
+      "fps": 187.91,
+      "error": null,
+      "attempts": 1
+    },
+    {
+      "stream_id": "Camera-08",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.3117,
+      "fps": 192.5,
+      "error": null,
+      "attempts": 1
+    },
+    {
+      "stream_id": "Camera-09",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.3141,
+      "fps": 191.03,
+      "error": null,
+      "attempts": 1
+    },
+    {
+      "stream_id": "Camera-10",
+      "status": "completed",
+      "frames_processed": 60,
+      "elapsed_seconds": 0.2937,
+      "fps": 204.31,
+      "error": null,
+      "attempts": 1
+    }
+  ],
+  "gpu_validation": "NOT PERFORMED",
+  "4k_60fps_validation": "NOT PERFORMED"
+}
