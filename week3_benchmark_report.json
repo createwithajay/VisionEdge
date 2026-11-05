@@ -1,0 +1,20 @@
+{
+  "project": "VisionEdge",
+  "phase": "Week 3 benchmark",
+  "device": "CPU baseline; GPU acceleration not verified",
+  "stream_count": 4,
+  "frames_per_stream": 60,
+  "sequential": {
+    "frames": 240,
+    "elapsed_seconds": 0.4173,
+    "aggregate_fps": 575.16
+  },
+  "concurrent": {
+    "frames": 240,
+    "elapsed_seconds": 0.1501,
+    "aggregate_fps": 1598.53,
+    "all_streams_completed": true
+  },
+  "speedup_ratio": 2.78,
+  "interpretation": "Concurrent execution was faster."
+}
